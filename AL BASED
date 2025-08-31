@@ -1,0 +1,92 @@
+
+
+## pom.xml
+
+```xml
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.example</groupId>
+    <artifactId>mahout-recommender-demo</artifactId>
+    <version>1.0</version>
+
+    <dependencies>
+        <!-- Mahout 0.9 (includes Taste CF engine) -->
+        <dependency>
+            <groupId>org.apache.mahout</groupId>
+            <artifactId>mahout-core</artifactId>
+            <version>0.9</version>
+        </dependency>
+        <!-- Logging (required by Mahout) -->
+        <dependency>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+            <version>1.2.17</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!-- exec plugin to run the demo with `mvn exec:java` -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.0.0</version>
+                <configuration>
+                    <mainClass>RecommendationDemo</mainClass>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+
+## src/main/java/RecommendationDemo.java
+
+```java
+import java.io.File;
+import java.util.List;
+
+import org.apache.mahout.cf.taste.common.TasteException;
+import org.apache.mahout.cf.taste.impl.model.file.FileDataModel;
+import org.apache.mahout.cf.taste.model.DataModel;
+import org.apache.mahout.cf.taste.impl.similarity.PearsonCorrelationSimilarity;
+import org.apache.mahout.cf.taste.similarity.UserSimilarity;
+import org.apache.mahout.cf.taste.impl.neighborhood.NearestNUserNeighborhood;
+import org.apache.mahout.cf.taste.neighborhood.UserNeighborhood;
+import org.apache.mahout.cf.taste.recommender.RecommendedItem;
+import org.apache.mahout.cf.taste.recommender.Recommender;
+import org.apache.mahout.cf.taste.impl.recommender.GenericUserBasedRecommender;
+
+public class RecommendationDemo {
+    public static void main(String[] args) {
+        try {
+            
+            File ratings = new File("data/ratings.csv");
+            DataModel model = new FileDataModel(ratings);
+
+            
+            UserSimilarity similarity = new PearsonCorrelationSimilarity(model);
+
+            
+            UserNeighborhood neighborhood = new NearestNUserNeighborhood(2, similarity, model);
+
+            Recommender recommender = new GenericUserBasedRecommender(model, neighborhood, similarity);
+
+            
+            List<RecommendedItem> recommendations = recommender.recommend(1, 3);
+
+            System.out.println("Recommendations for user 1:");
+            if (recommendations.isEmpty()) {
+                System.out.println("  (no recommendations)");
+            } else {
+                for (RecommendedItem ri : recommendations) {
+                    System.out.printf("  Item %d (score: %.4f)\n", ri.getItemID(), ri.getValue());
+                }
+            }
+
+        } catch (Exception e) {
+            System.err.println("Error running recommender: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+}
